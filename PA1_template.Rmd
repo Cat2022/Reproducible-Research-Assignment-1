@@ -1,7 +1,7 @@
 Reproducible Research Project 1 
+HTML: file:///Users/cathymahon/Documents/GitHub/GettingCleaningData/Reproducible-Research-Assignment-1/PA1_template.html
 ====================================
 ## Catherine Mahon 
-
 ### Loading in the data 
 ```{r, echo=TRUE}
 Data <- read.csv('activity.csv')
