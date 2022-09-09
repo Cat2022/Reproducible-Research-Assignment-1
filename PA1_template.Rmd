@@ -1,25 +1,108 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Reproducible Research Project 1 
+====================================
+## Catherine Mahon 
+
+### Loading in the data 
+```{r, echo=TRUE}
+Data <- read.csv('activity.csv')
+str(Data)
+Data$date<- as.Date(Data$date)
+
+```
+
+### What is mean total number of steps taken per day?
+The below code will create a histogram of the number of steps taken a day as well as a table with the mean, median including 0 and median excluding 0.
+```{r, echo=TRUE}
+
+TotalStepsPerDay <- as.data.frame(unique(Data$date))
+names(TotalStepsPerDay)<- 'Date'
+TotalStepsPerDay$Steps<- sapply(TotalStepsPerDay$Date, function(x){
+  day<- subset(Data,date==x )
+  sum(day$steps)
+})
+library(ggplot2)
+library(tidyverse)
+  ggplot(TotalStepsPerDay, aes(x=Steps)) + geom_histogram()
+
+Mean_Median_Data <- as.data.frame(unique(Data$date))
+names(Mean_Median_Data)<- 'Date'
+Mean_Median_Data$MeanSteps<- sapply(Mean_Median_Data$Date, function(x){
+  mean(subset(Data,date==x)$steps, na.rm=T)
+  })
+
+Mean_Median_Data$MedianSteps<- sapply(Mean_Median_Data$Date, function(x){
+  median(subset(Data,date==x)$steps, na.rm=T)
+  })
+Mean_Median_Data$MedianStepsNo0<- sapply(Mean_Median_Data$Date, function(x){
+  median(subset(Data,date==x& steps!=0)$steps, na.rm=T)
+  })
+Mean_Median_Data
+```
+
+### What is the average daily activity pattern?
+Creating a table to calculate the mean per interval (excluding any NA values) then plotting the result on a line graph.
+I have then found the maximum of the mean steps per interval to find the interval that has the greatest number of mean steps, this was 835.
+
+```{r, echo=TRUE}
+MeanStepsPerDay <- mean(Data$steps,na.rm = T)
+MedianStepsPerDay <- median(Data$steps,na.rm = T)
+
+MeanStepsPerDay
+MedianStepsPerDay
+
+MeanPerInterval<- aggregate(steps~interval, Data, mean)
+ggplot(na.omit(MeanPerInterval))+ geom_line(aes(y = steps, x =interval )) + ylab('Mean Steps') +ggtitle('Mean Steps Per Interval')
+
+subset(MeanPerInterval, steps== max(MeanPerInterval$steps))
+
+```
+
+### Imputing missing values
+The below code will replace the NA values in the number of steps with the mean of the interval if it is available, if not it will replace with the mean of the data set (after removing the NA's).
+
+Then the mean of this NA replaced data set is calculated for each interval, this is then compared with the means that were calculated before, if you look at the max and the min difference, both are less than 1 so the differences are minimal.
+
+The median is then calculated and compared with the medians calculated before, all of these differences are 0 again implying there is not much difference between the two data sets.
+
+```{r, echo=TRUE}
+sum(is.na(Data))
+
+InputMeanPerInterval <- MeanPerInterval$steps
+names(InputMeanPerInterval)<- MeanPerInterval$Interval
+DataInfilledNa<- Data
+DataInfilledNa$steps<- apply(Data,1,function(x){
+  if(is.na(x[1])){
+    mean<- round(InputMeanPerInterval[x[3]],digits = 0)
+  } else (mean<- x[1])
+  return(mean)
+})
+DataInfilledNa$steps<- as.numeric(DataInfilledNa$steps)
+DataInfilledNa$steps<-replace_na(DataInfilledNa$steps,replace = as.numeric(mean(Data$steps,na.rm=T)))
+
+TotalStepsPerDayNoNA <- as.data.frame(unique(DataInfilledNa$date))
+names(TotalStepsPerDayNoNA)<- 'Date'
+TotalStepsPerDayNoNA$Steps<- sapply(TotalStepsPerDayNoNA$Date, function(x){
+  day<- subset(DataInfilledNa,date==x )
+  sum(day$steps)
+})
 
 
-## Loading and preprocessing the data
+ggplot(TotalStepsPerDayNoNA, aes(x=Steps)) + geom_histogram()
+  
+  
+MeanStepsPerDayNaRemoved <- mean(TotalStepsPerDayNoNA$Steps)
+MedianStepsPerDayNaRemoved <- median(TotalStepsPerDayNoNA$Steps)
 
+MeanStepsPerDayNaRemoved
+MedianStepsPerDayNaRemoved
+```
+###  Weekday vs Weekend
+```{r, echo=TRUE}
+DataInfilledNa$Weekend <- weekdays(DataInfilledNa$date)
+DataInfilledNa$Weekend<- as.factor(sapply(DataInfilledNa$date, function(x){
+  if(weekdays(x)%in% c('Saturday', 'Sunday')) { Weekend<- "Yes"}
+  else(Weekend<- "No")
+}))
+ggplot(data=DataInfilledNa, aes(x= interval, y = steps)) +stat_summary(fun = "mean", geom = "line") + facet_wrap(facets = 'Weekend')+ggtitle('Mean Steps Per Interval Weekdays vs Weekend')
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```
